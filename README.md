@@ -27,7 +27,7 @@ Last update 2017.09.13
     - add vision module and thread
            the interface between video decoding thread to be defined.  e.g. call-back, pipe-queue,  etc.
    
-* Know Issue
+* KnownIssues
 
     - WIFI distance : we purchased long-distance anttena dongle but need install linux drivers for them.
     - Many unhanlded messages (doesnot seems so critical but have to clean up.)
