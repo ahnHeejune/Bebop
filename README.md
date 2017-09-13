@@ -7,6 +7,7 @@ Last update 2017.09.13
    - Node-bebop project: https://github.com/hybridgroup/node-bebop  
    - Parrot Developer official site:  http://developer.parrot.com/
        you can get official SDK and documents (now SDK3 is latest version): http://developer.parrot.com/docs/SDK3/
+   - Video Streaming since Bebop firmware 3.3 : http://cvdrone.de/stream-bebop-video-with-python-opencv.html
        
 * Done 
    - minimum message handling (same level as node-bebop project)
