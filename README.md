@@ -22,10 +22,13 @@ Last update 2017.09.13
    
 * TODO & Plan
 
-    - velocity control: feedback control of vx, vy, vz 
+    - ITEM 1: velocity control: feedback control of vx, vy, vz 
        
-    - add vision module and thread
+    - ITEM 2:  add vision module and thread
            the interface between video decoding thread to be defined.  e.g. call-back, pipe-queue,  etc.
+           
+    - ITEM 3: decrease the resolution and store video into into mp4 or avi file.
+     
    
 * KnownIssues
 
