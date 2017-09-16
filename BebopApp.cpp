@@ -156,11 +156,11 @@ int main(int argc, char *argv[])
         curCmd = key;
 				break;
 			case 'r':
-				drone.setPCMD(pcmdVal, 0, 0, 0);  // roll > 0 
+				drone.setPCMD(-pcmdVal, 0, 0, 0);  // roll < 0 
         curCmd = key;
 				break;
 			case 'l':
-				drone.setPCMD(-pcmdVal, 0, 0, 0); // roll < 0 
+				drone.setPCMD(pcmdVal, 0, 0, 0); // roll > 0 
         curCmd = key;
 				break;
 			case 'u':
