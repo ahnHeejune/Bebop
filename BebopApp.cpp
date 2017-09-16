@@ -26,7 +26,7 @@ static int waitKey(int delayInms = 10)
 	char ckey;
 	fd_set s_rd;
 	struct timeval delay = {0L, delayInms*1000L};  
-	int fd = fileno(stdin);
+	int fd = STDIN_FILENO;
 
 	FD_ZERO(&s_rd);
 	FD_SET(fd, &s_rd);
@@ -65,9 +65,10 @@ int main(int argc, char *argv[])
 {
 	int key; 
 	int result;
-     	Bebop drone;
-        char curCmd = (char)0; // nothing
-        bool videoEnabled = false;
+  Bebop drone;
+  char curCmd = (char)0; // nothing
+  bool videoEnabled = false;
+  int pcmdVal = 5; //5%
 
 
 	showCommands();
@@ -138,53 +139,52 @@ int main(int argc, char *argv[])
 
 			case 't':
 				drone.takeoff();
-                                curCmd = key;
+        curCmd = key;
 				break;
 			case 's':
 				drone.land();
-                                curCmd = key;
+        curCmd = key;
 				break;
 
 			// NAV
 			case 'f':
-				drone.setPCMD(0, 10, 0, 0);
-                                curCmd = key;
+				drone.setPCMD(0, -pcmdVal, 0, 0); // pitch < 0  
+        curCmd = key;
 				break;
 			case 'b':
-				drone.setPCMD(10, -10, 0, 0);
-                                curCmd = key;
+				drone.setPCMD(0, pcmdVal, 0, 0);  // pitch > 0
+        curCmd = key;
 				break;
 			case 'r':
-				drone.setPCMD(10, 0, 0, 0);
-                                curCmd = key;
+				drone.setPCMD(pcmdVal, 0, 0, 0);  // roll > 0 
+        curCmd = key;
 				break;
 			case 'l':
-				drone.setPCMD(-10, 0, 0, 0);
-                                curCmd = key;
+				drone.setPCMD(-pcmdVal, 0, 0, 0); // roll < 0 
+        curCmd = key;
 				break;
 			case 'u':
-				drone.setPCMD(0, 0, 10, 0);
-                                curCmd = key;
+				drone.setPCMD(0, 0, -pcmdVal, 0);
+        curCmd = key;
 				break;
 			case 'd':
-				drone.setPCMD(0, 0, -10, 0);
-                                curCmd = key;
+				drone.setPCMD(0, 0, pcmdVal, 0);
+        curCmd = key;
 				break;
 			case 'c':
-				drone.setPCMD(0, 0, 0, 10);
-                                curCmd = key;
+				drone.setPCMD(0, 0, 0, pcmdVal);
+        curCmd = key;
 				break;
 			case 'x':
-				drone.setPCMD(0, 0, 0,-10);
-                                curCmd = key;
+				drone.setPCMD(0, 0, 0,-pcmdVal);
+        curCmd = key;
 				break;
 			case 'q':
-                              	drone.emergency();
-
+       	drone.emergency();
 				usleep(1000000);
-                                curCmd = key;
-			      	goto _finish_point;
-			      	break;
+        curCmd = key;
+			  goto _finish_point;
+			  break;
 
 			default:
 				

@@ -75,7 +75,6 @@ bool Bebop::mediaStreamingEnable(bool enable)
 	return true;
 }
 
-
 //========================================================================
 // RTP RX using OpenCV (internally ffmpeg) 
 // @TODO: have to separate the control and video part?
@@ -83,35 +82,63 @@ bool Bebop::mediaStreamingEnable(bool enable)
 void *Bebop::innerRunVid()
 #if 1 
 {
+	static bool needRecording = false;
   const char *winName = "rtp";
 	//use path of "bebop.sdp" file
 	const string sdpLocation = "./bebop.sdp";
 
-	std::cout << "==========video thread============================="<< std::endl;
+	std::cout << "====video thread============================="<< std::endl;
 
 	Mat image;
 	VideoCapture *vcap = new VideoCapture(sdpLocation);
 	if(!vcap->isOpened()){
 		std::cerr << "error in openning video " << std::endl;
 		vcap->release();
+		free(vcap);
 		return NULL;
+	}
+
+  int width = vcap->get(CV_CAP_PROP_FRAME_WIDTH);
+  int height = vcap->get(CV_CAP_PROP_FRAME_HEIGHT);
+  double fps = vcap->get(CV_CAP_PROP_FPS);
+  double _fourcc = vcap->get(CV_CAP_PROP_FOURCC);
+  char *fourcc = (char *)(&_fourcc);
+  Size sz(width, height);
+
+  std::cout << "VideoFmt:" << width << "x" << height << "@"<< fps << ":" << fourcc  << std::endl;
+
+		VideoWriter *recVid = NULL;
+  if(needRecording){
+		 recVid  = new VideoWriter("record.avi",CV_FOURCC('M','J','P','G'), fps, sz);
+		if(!recVid)
+			std:cerr << "error in creating Video writer" << std::endl;
 	}
 
 	namedWindow(winName, CV_WINDOW_AUTOSIZE);
 	while(!stopVidReq){
 		if(!vcap->read(image))	
         break;
-     image.copyTo(img); // thread safe clone for using it 
+  	if(needRecording){
+			recVid->write(image);
+		}
+
+
+//     image.copyTo(img); // thread safe clone for using it 
         
-		imshow(winName, image);
-		waitKey(10);
+		imshow(winName, image); // this is temporary code
+		waitKey(10); // @TODO, this should not get any key since we have another thread to getting key input
 	}
 
   std::cerr << "Finishing RTP" << std::endl;
+ 	if(needRecording){
+		recVid->release();
+		free(recVid);
+	} 
+	vcap->release();
+  free(vcap);
   //cvDestroyWindow(winName); 
   destroyAllWindows(); 
 	waitKey(10);
-	vcap->release();
   return (void *)1;
 }
 #else // for testing video is comming 

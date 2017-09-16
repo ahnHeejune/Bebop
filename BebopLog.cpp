@@ -103,7 +103,55 @@ bool Bebop::logFlyingStatus(int status)
 }
 
 //===========================================================================
-// Drone flying status  message 
+// Sending Drone flying State command 
+//=============================================================================
+bool Bebop::logSetFly(int mode)  
+{
+	if(logFptr == NULL){
+		std::cout << "no file opened" << std::endl;
+		return false;
+	}
+
+  pthread_mutex_lock(&logMutex);   
+	fprintf(logFptr, "setfly %ld %d\n", elapsedTime(), mode);
+	fflush(logFptr);
+  pthread_mutex_unlock(&logMutex);   
+	return true;
+}
+//===========================================================================
+// Set media status  
+//=============================================================================
+bool Bebop::logSetPCMD(int pitch, int roll, int yawSpeed, int gaz)  
+{
+	if(logFptr == NULL){
+		std::cout << "no file opened" << std::endl;
+		return false;
+	}
+
+  pthread_mutex_lock(&logMutex);   
+	fprintf(logFptr, "pcmd %ld %d %d %d %d \n", elapsedTime(), pitch, roll, yawSpeed, gaz);
+	fflush(logFptr);
+  pthread_mutex_unlock(&logMutex);   
+	return true;
+}
+//===========================================================================
+// Set media status  
+//=============================================================================
+bool Bebop::logSetMedia(int status)  
+{
+	if(logFptr == NULL){
+		std::cout << "no file opened" << std::endl;
+		return false;
+	}
+
+  pthread_mutex_lock(&logMutex);   
+	fprintf(logFptr, "med %ld %d\n", elapsedTime(), status);
+	fflush(logFptr);
+  pthread_mutex_unlock(&logMutex);   
+	return true;
+}
+//===========================================================================
+// media status report 
 //=============================================================================
 bool Bebop::logMediaStatus(int status)  
 {
@@ -149,7 +197,7 @@ bool Bebop::logSpeedInfo(float speedx, float speedy, float speedz)
 	}
 
   pthread_mutex_lock(&logMutex);   
-	fprintf(logFptr, "spd %ld %.3f %.3f %.3f %.3f\n", elapsedTime(), speedx, speedy, speedz);
+	fprintf(logFptr, "spd %ld %.3f %.3f %.3f\n", elapsedTime(), speedx, speedy, speedz); // bug fixed 2017. 09.16
 	fflush(logFptr);
   pthread_mutex_unlock(&logMutex);   
 	return true;
@@ -159,7 +207,7 @@ bool Bebop::logSpeedInfo(float speedx, float speedy, float speedz)
 // Drone attitude mesaage 
 // roll, pitch, yawspeed, gaz in RADIAN
 //=============================================================================
-bool Bebop::logAttitudeInfo(float roll, float pitch, float yaw )
+bool Bebop::logAttitudeInfo(float pitch, float roll, float yaw )
 {
 	if(logFptr == NULL){
 		std::cout << "no file opened" << std::endl;

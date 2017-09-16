@@ -154,11 +154,14 @@ protected:
     timeval* globalClock;
     int  logInit();
     int  logClose();
+    bool logSetFly(int mode);
+    bool logSetPCMD(int pitch, int roll, int yawSpeed, int gaz); // pitch(x)-roll(y)
     bool logFlyingStatus(int status);
+    bool logSetMedia(int status);
     bool logMediaStatus(int status);
     bool logGPSInfo(double latitude, double longitude, double altitude); // GPS degree
     bool logSpeedInfo(float speedx, float speedy, float speedz); // m/s
-    bool logAttitudeInfo(float roll, float pitch, float yaw); // radian
+    bool logAttitudeInfo(float pitch, float roll, float yaw); // radian
     bool logAltitudeInfo(double altitude); // meter
     bool logUndefinedMsg(int pjt, int clazz, int cmd, unsigned char *msg, int prntlen);
 

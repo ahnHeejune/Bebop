@@ -272,6 +272,7 @@ void Bebop::takeoff()
 
 	//Take off
 	controlDroneCmdGenerator(_project, _class, _cmd);
+  logSetFly(TAKINGOFF);
 }
 
 /* landing */
@@ -283,6 +284,7 @@ void Bebop::land()
 
 	//Land
 	controlDroneCmdGenerator(_project, _class, _cmd);
+  logSetFly(LANDING);
 }
 
 /* emergency ?? */
@@ -294,6 +296,7 @@ void Bebop::emergency()
 
 	//Emergency mode
 	controlDroneCmdGenerator(_project, _class, _cmd);
+  logSetFly(EMERGENCY);
 }
 
 //------------------------------------------------------------------------
@@ -435,10 +438,13 @@ int  Bebop::setPCMD(int roll, int pitch, int yawSpeed, int zSpeed)
 	   !inRange(-100, zSpeed, 100) )
 		return -1;
 		
-	pcmd.roll = pitch;
+	pcmd.roll = roll; // bug fixed, 2017.09.16
 	pcmd.pitch = pitch;
 	pcmd.yawSpeed = yawSpeed ;
 	pcmd.zSpeed =  zSpeed;
+
+  // @TODO convert it absolute value from the maxmum values of drone cnfiguration
+  logSetPCMD(pitch, roll, yawSpeed, zSpeed);
 
 	return 0;
 }
@@ -679,7 +685,7 @@ void Bebop::onD2CNavFrame(unsigned char *buf, int length)
 				roll = readFloat(buf+4);
 				pitch = readFloat(buf+8);
 				yaw = readFloat(buf+12);
-			  logAttitudeInfo(roll, pitch, yaw);
+			  logAttitudeInfo(pitch, roll,  yaw);
 				//std::cout << "Roll: " << roll << std::endl;
 				//std::cout << "Pitch: " << pitch << std::endl;
 				//std::cout << "Yaw: " << yaw << std::endl;
@@ -688,6 +694,7 @@ void Bebop::onD2CNavFrame(unsigned char *buf, int length)
 			case AltitudeChanged:
 				//Read Altitude (double)
 				altitude = readDouble(buf+4);
+			  logAltitudeInfo(altitude);
 				break;
 
 			 default:
