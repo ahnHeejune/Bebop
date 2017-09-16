@@ -232,7 +232,7 @@ bool Bebop::logAltitudeInfo(double alt)
 	}
 
   pthread_mutex_lock(&logMutex);   
-	fprintf(logFptr, "att %ld %.3lf\n", elapsedTime(), alt);
+	fprintf(logFptr, "alt %ld %.3lf\n", elapsedTime(), alt);
 	fflush(logFptr);
   pthread_mutex_unlock(&logMutex);   
 	return true;
