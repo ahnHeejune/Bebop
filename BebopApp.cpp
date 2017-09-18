@@ -68,7 +68,8 @@ int main(int argc, char *argv[])
   Bebop drone;
   char curCmd = (char)0; // nothing
   bool videoEnabled = false;
-  int pcmdVal = 5; //5%
+  int initialPcmdVal = 10;
+  int pcmdVal = initialPcmdVal; //10%
 
 
 	showCommands();
@@ -147,38 +148,64 @@ int main(int argc, char *argv[])
 				break;
 
 			// NAV
-			case 'f':
-				drone.setPCMD(0, -pcmdVal, 0, 0); // pitch < 0  
-        curCmd = key;
+			case 'f':  // @TODO: increase when press one more.
+				if(curCmd == 'f')   
+				    pcmdVal += 5;  // speed up
+				else 
+				    pcmdVal = initialPcmdVal;
+        			drone.setPCMD(0, pcmdVal, 0, 0); // pitch < 0  
+					curCmd = key;
 				break;
 			case 'b':
-				drone.setPCMD(0, pcmdVal, 0, 0);  // pitch > 0
+				if(curCmd == 'b')   
+				    pcmdVal += 5;  // speed up
+				else 
+				    pcmdVal = initialPcmdVal;
+				drone.setPCMD(0, -pcmdVal, 0, 0);  // pitch > 0
         curCmd = key;
 				break;
 			case 'r':
-				drone.setPCMD(-pcmdVal, 0, 0, 0);  // roll < 0 
-        curCmd = key;
+				if(curCmd == 'r')   
+				    pcmdVal += 5;  // speed up
+				else 
+				    pcmdVal = initialPcmdVal;
+				drone.setPCMD(pcmdVal, 0, 0, 0);  // roll < 0 
+        			curCmd = key;
 				break;
 			case 'l':
-				drone.setPCMD(pcmdVal, 0, 0, 0); // roll > 0 
-        curCmd = key;
+				drone.setPCMD(-pcmdVal, 0, 0, 0); // roll > 0 
+        			curCmd = key;
 				break;
 			case 'u':
-				drone.setPCMD(0, 0, -pcmdVal, 0);
-        curCmd = key;
+				drone.setPCMD(0, 0, 0, pcmdVal);
+        			curCmd = key;
 				break;
 			case 'd':
-				drone.setPCMD(0, 0, pcmdVal, 0);
-        curCmd = key;
+				drone.setPCMD(0, 0, 0, -pcmdVal);
+        			curCmd = key;
 				break;
 			case 'c':
-				drone.setPCMD(0, 0, 0, pcmdVal);
-        curCmd = key;
+				if(curCmd == 'c')   
+				    pcmdVal += 5;  // speed up
+				else 
+				    pcmdVal = initialPcmdVal;
+				drone.setPCMD(0, 0, pcmdVal, 0);
+        			curCmd = key;
 				break;
 			case 'x':
-				drone.setPCMD(0, 0, 0,-pcmdVal);
-        curCmd = key;
+				if(curCmd == 'x')   
+				    pcmdVal += 5;  // speed up
+				else 
+				    pcmdVal = initialPcmdVal;
+				drone.setPCMD(0, 0, -pcmdVal, 0);
+        			curCmd = key;
 				break;
+					
+			case '0':
+				drone.setPCMD(0, 0, 0, 0);
+        			curCmd = key;
+				break;
+	
 			case 'q':
        	drone.emergency();
 				usleep(1000000);
