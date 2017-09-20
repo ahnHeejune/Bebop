@@ -429,22 +429,22 @@ navcmd Bebop::counterClockwiseCMD(unsigned char val)
 // float - psi [NOT USED] - Magnetic north heading of the
 //         controlling device (deg) [-180;180]
 //----------------------------------------------------------------
-int  Bebop::setPCMD(int roll, int pitch, int yawSpeed, int zSpeed)
+int  Bebop::setPCMD(int _roll, int _pitch, int _yawSpeed, int _zSpeed)
 {
 	// check range 
-	if(!inRange(-100, roll, 100) ||
-	   !inRange(-100, pitch, 100) ||
-	   !inRange(-100, yawSpeed, 100) ||
-	   !inRange(-100, zSpeed, 100) )
+	if(!inRange(-100, _roll, 100) ||
+	   !inRange(-100, _pitch, 100) ||
+	   !inRange(-100, _yawSpeed, 100) ||
+	   !inRange(-100, _zSpeed, 100) )
 		return -1;
 		
-	pcmd.roll = roll; // bug fixed, 2017.09.16
-	pcmd.pitch = pitch;
-	pcmd.yawSpeed = yawSpeed ;
-	pcmd.zSpeed =  zSpeed;
+	pcmd.roll = _roll; // bug fixed, 2017.09.16
+	pcmd.pitch = _pitch;
+	pcmd.yawSpeed = _yawSpeed ;
+	pcmd.zSpeed =  _zSpeed;
 
   // @TODO convert it absolute value from the maxmum values of drone cnfiguration
-  logSetPCMD(pitch, roll, yawSpeed, zSpeed);
+  logSetPCMD(_pitch, _roll, _yawSpeed, _zSpeed);
 
 	return 0;
 }
@@ -658,12 +658,12 @@ void Bebop::onD2CNavFrame(unsigned char *buf, int length)
 				//Read latitude (double) longitude (double) altitude (double)
 				latitude = readDouble(buf+4);
 				longitude = readDouble(buf+12);
-				altitude = readDouble(buf+20);
+				altitudeGPS = readDouble(buf+20);
 				//std::cout << "Latitude: " << latitude << std::endl;
 				//std::cout << "Longitude: " << longitude << std::endl;
 
 				//Don't write default value;
-				logGPSInfo(latitude, longitude, altitude);
+				logGPSInfo(latitude, longitude, altitudeGPS);
 
 				//Write coordinate into file
 				//Read value when latitude, longitude >= 0
@@ -693,8 +693,8 @@ void Bebop::onD2CNavFrame(unsigned char *buf, int length)
                 
 			case AltitudeChanged:
 				//Read Altitude (double)
-				altitude = readDouble(buf+4);
-			  logAltitudeInfo(altitude);
+				altitudeBaro = readDouble(buf+4);
+			  logAltitudeInfo(altitudeBaro);
 				break;
 
 			 default:

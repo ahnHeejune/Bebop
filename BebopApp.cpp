@@ -1,6 +1,13 @@
-/*
+/*------------------------------------------------------------------------------
  * bebop.cpp
  *
+ * Bebop Demo Application 
+ *
+ * - provide basic test commands 
+ * - 1: forwrds constant speed
+ * - 2: turn 90 degree
+ * - 3: curvature (radius?)   lengthof1 / pi/2 / time_of_2 
+ *-----------------------------------------------------------------------------
  */
 
 #include <pthread.h>
@@ -8,6 +15,8 @@
 #include <opencv2/opencv.hpp>
 #include "Bebop.h"
 #include <termios.h>
+#include <cmath>
+#include <algorithm>
 
 
 /* keyboard input handling */
@@ -47,6 +56,70 @@ static int waitKey(int delayInms = 10)
 
 }
 
+
+//===================================================================
+//PTcontroll or drone 
+//
+// the current implementaiton is as follows:
+//
+//  - limited proportional to target - currrent
+
+//                   30   +-------------- 
+//                       /    
+//                      /
+//      --------------/-------------------->
+//                  / 0 
+//                /
+//      --------+ -30
+//
+// Kpx : linear [-0.3, +0.3] m/s  
+// kpy : linear [-0.15, +0.15] m/s 
+// Kpa : linear [-30, +30] degree
+// Kpz : linear [-1.0, +1.0] meter
+// 
+// @TODO move to BebopControl after verification  
+//===================================================================
+static void controlDrone(Bebop &drone, float target[4])
+{
+    const float Kpx = 100.0, Kpy = 50.0, Kpz = 30.0,  Kpa = 60.0;
+	  int  cmdRoll, cmdPitch, cmdSpeedYaw, cmdGaz;
+    float curVx = -drone.getSpeedX(); // due to x-axis def of bebop
+    float curVy = -drone.getSpeedY();
+    float curYaw = drone.getYaw();
+    float curAlt = drone.getAlt();
+    float tarVx  = target[0];
+    float tarVy  = target[1];
+    float tarYaw  = target[2];
+    float tarAlt  = target[3];
+
+    // 0. only send command when flying state
+    DRONE_STATE droneState = drone.getFlyingState();
+    if(droneState != HOVERING && droneState != FLYING) // only safei condition 
+				return;
+     
+    // 1. control output only P-controller 
+    cmdPitch = (int)Kpx*(tarVx - curVx);
+    cmdRoll  = (int)Kpy*(tarVy - curVy);
+    cmdSpeedYaw = (int)Kpa*(tarYaw - curYaw);
+    cmdGaz = (int)Kpz*(tarAlt - curAlt);
+
+    // 2. limit not to operate  extremely    
+    cmdPitch = std::max(std::min(cmdPitch,30), -30);  
+    cmdRoll  = std::max(std::min(cmdRoll,30), -30); 
+    cmdSpeedYaw = std::max(std::min(cmdSpeedYaw,30), -30);  
+    cmdGaz = std::max(std::min(cmdGaz,30), -30);  
+
+#if 0  // for debugging 
+    std::cerr << "Control:x:" << tarVx << ","  << curVx << "=>" << cmdPitch << std::endl;  
+    std::cerr << "Control:y:" << tarVy << ","  << curVy << "=>" << cmdRoll  << std::endl;  
+    std::cerr << "Control:a:" << tarYaw << ","  << curYaw << "=>" << cmdSpeedYaw << std::endl;  
+    std::cerr << "Control:z:" << tarAlt << ","  << curAlt << "=>" << cmdGaz << std::endl;  
+#endif
+
+    // set new control values
+    drone.setPCMD(cmdRoll, cmdPitch, cmdSpeedYaw, cmdGaz);
+}
+
 static void showCommands()
 {
 
@@ -56,6 +129,7 @@ static void showCommands()
 	std::cout << " - h: hovering, u:up, d:down " << std::endl;
 	std::cout << " - f:fowwards, b:backwards, r:right, l:left,c:clockwise, r:counter-clockwise" << std::endl;
 	std::cout << " - c:clockwise, x:counter-clockwise" << std::endl;
+	std::cout << " - controlled mode:  1: forwared  2: rotation 3:  curve turn" << std::endl;
 	std::cout << " - longer commands to be defined" << std::endl;
 	std::cout << "  ============================================" << std::endl;
 
@@ -70,7 +144,8 @@ int main(int argc, char *argv[])
   bool videoEnabled = false;
   int initialPcmdVal = 10;
   int pcmdVal = initialPcmdVal; //10%
-
+	float targets[4];  // target vx, vy, yaw_angle, altitude 
+  float curYaw;
 
 	showCommands();
 	setiNonBlockTerminal();
@@ -118,7 +193,7 @@ int main(int argc, char *argv[])
 
 #elif 1
 
-		key = waitKey(10);
+		key = waitKey(25);
 		if(key >= 0){
 
 			std::cout << "KEY:" << (char)key << std::endl;
@@ -137,7 +212,6 @@ int main(int argc, char *argv[])
 				break;
 
 			// MODE
-
 			case 't':
 				drone.takeoff();
         curCmd = key;
@@ -147,7 +221,7 @@ int main(int argc, char *argv[])
         curCmd = key;
 				break;
 
-			// NAV
+			// simple NAV
 			case 'f':  // @TODO: increase when press one more.
 				if(curCmd == 'f')   
 				    pcmdVal += 5;  // speed up
@@ -201,9 +275,37 @@ int main(int argc, char *argv[])
         			curCmd = key;
 				break;
 					
-			case '0':
+			case 'h': 
 				drone.setPCMD(0, 0, 0, 0);
-        			curCmd = key;
+        curCmd = key;
+				break;
+
+
+      // high level control
+      case '1':  // straight forward constan speed 
+        curCmd = key;  
+        curYaw = drone.getYaw();
+			  targets[0] =  0.3; // vx, + : forwards, - : backwards
+		    targets[1] =  0.0; // vy, +: right      - : left 
+			  targets[2] =  curYaw; // angle  
+			  targets[3] =  1.0; // meter, + : up, -dn 
+				break;
+      case '2':  // turn 90 degree 
+        curCmd = key;  
+        curYaw = drone.getYaw();
+			  targets[0] = 0.0; // vx
+		    targets[1] = 0.0; // vy
+			  targets[2] = fmod(curYaw + M_PI/2, 2.0*M_PI) ; // angle  
+			  if(targets[2] > M_PI)  targets[2] -= M_PI;  
+			  targets[3] = 1.0; // meter 
+				break;
+      case '3':  // curve
+        curCmd = key;  
+			  targets[0] = 0.3; // vx
+		    targets[1] = 0.0; // vy
+			  targets[2] = fmod(curYaw + M_PI/2, 2.0*M_PI) ; // angle  
+			  if(targets[2] > M_PI)  targets[2] -= M_PI;  
+			  targets[3] = 1.0; // meter 
 				break;
 	
 			case 'q':
@@ -218,7 +320,14 @@ int main(int argc, char *argv[])
 				std::cerr << "undefined command" << std::endl;
 		}// switch
 
-	     } // key
+	  } // key
+
+
+    // motion control
+		if(curCmd == '1' || curCmd == '2' || curCmd == '3'){
+			controlDrone(drone, targets);
+		}
+
 #endif
 	}
 

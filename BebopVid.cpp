@@ -64,7 +64,7 @@ bool Bebop::mediaStreamingEnable(bool enable)
 	if(enable){ // 4. run the drone agent thread
 		std::cout << "Media Enabling..."<<  std::endl;
 		stopVidReq = false;
-		pthread_create(&tidVid, NULL, runVid, this);
+		//pthread_create(&tidVid, NULL, runVid, this);
 	}else{
 		std::cout << "Media Disabling..."<<  std::endl;
 		stopVidReq = true;

@@ -133,11 +133,59 @@ protected:
     //------------------------------------------------// 
     float speedX, speedY, speedZ;
     float roll, yaw, pitch;
+		float altitudeBaro;  // altitude from ground, not GPS 
+public:
+    DRONE_STATE getFlyingState()
+		{
+			   return droneState;
+		}
+    float getSpeedX()
+		{
+				return speedX;
+		}
+    float getSpeedY()
+		{
+				return speedY;
+		}
+    float getSpeedZ()
+		{
+				return speedZ;
+		}
+    float getRoll()
+		{
+				return roll;
+		}
+    float getYaw()
+		{
+				return yaw;
+		}
+    float getPitch()
+		{
+				return pitch;
+		}
+    float getAlt()
+		{
+				return (float)altitudeBaro;
+		}
+     
+protected:
     NAV_CMD_TYPE  mNavigationCommand;
     unsigned char inputParam;
     static unsigned char validateAngle(unsigned char angle);
     
-    double latitude, longitude, altitude;
+    double latitude, longitude, altitudeGPS;
+
+public:
+    float getLat()
+		{
+				return (float)latitude;
+		}
+    float getLon()
+		{
+				return (float)longitude;
+		}
+protected:
+ 
  
     // log-related -------------------------------// 
     static const char* LOG_DIR_PATH;
