@@ -4,10 +4,10 @@
 #include <opencv2/opencv.hpp>
 #include "ARConstant.h"
 #include "Bebop.h"
+#include "RtpVidClient.h"
 
 using namespace std;
 using namespace cv;
-
 
 //========================================================================
 // bebop media control 
@@ -64,7 +64,7 @@ bool Bebop::mediaStreamingEnable(bool enable)
 	if(enable){ // 4. run the drone agent thread
 		std::cout << "Media Enabling..."<<  std::endl;
 		stopVidReq = false;
-		//pthread_create(&tidVid, NULL, runVid, this);
+		pthread_create(&tidVid, NULL, runVid, this);
 	}else{
 		std::cout << "Media Disabling..."<<  std::endl;
 		stopVidReq = true;
@@ -80,7 +80,83 @@ bool Bebop::mediaStreamingEnable(bool enable)
 // @TODO: have to separate the control and video part?
 //========================================================================
 void *Bebop::innerRunVid()
-#if 1 
+#if 1 // FFMPEG based 
+{
+	static bool needRecording = false;
+  const char *winName = "rtp";
+	//use path of "bebop.sdp" file
+	const char *sdpLocation = "./bebop.sdp";
+
+  //void *vcap = ffrtp_init(sdpLocation.c_str());
+  RtpVidClient *vcap =  RtpVidClient::getInstance();
+
+  if(vcap == NULL)
+      return NULL;
+
+	if(vcap->open(sdpLocation) < 0) {
+		std::cerr << "error in openning video " << std::endl;
+      return NULL;
+	}
+
+ int width = 0, height = 0;
+ float fps =0.0;
+ if(vcap->getResolution(&width, &height, &fps) < 0){
+		std::cerr << "error in openning video " << std::endl;
+      return NULL;
+ }
+/*
+  double fps = vcap->get(CV_CAP_PROP_FPS);
+  double _fourcc = vcap->get(CV_CAP_PROP_FOURCC);
+  char *fourcc = (char *)(&_fourcc);
+*/
+  Size sz(width, height);
+  std::cout << "VideoFmt:" << width << "x" << height << "@"<< fps 
+  //<< ":" << fourcc  
+	<< std::endl;
+
+  // only once 
+  unsigned char *imgPtr;
+  int imgStride;
+  vcap->getImagePtr(&imgPtr, &imgStride);
+	Mat imgMat = cv::Mat(height, width, CV_8UC3, imgPtr, imgStride);
+
+	VideoWriter *recVid = NULL;
+  if(needRecording){
+		 recVid  = new VideoWriter("record.avi",CV_FOURCC('M','J','P','G'), fps, sz);
+		if(!recVid)
+			std:cerr << "error in creating Video writer" << std::endl;
+	}
+
+	namedWindow(winName, CV_WINDOW_AUTOSIZE);
+
+	while(!stopVidReq){
+     int f = vcap->decode_frame();
+     if(!f)
+        break;
+
+  	if(needRecording){
+			recVid->write(imgMat);
+		}
+//     image.copyTo(img); // thread safe clone for using it 
+		imshow(winName, imgMat); 
+		waitKey(10); // @TODO, this should not get any key since we have another thread to getting key input
+	}
+
+  std::cerr << "Finishing RTP" << std::endl;
+ 	if(needRecording){
+		recVid->release();
+		free(recVid);
+	} 
+  vcap->close();
+  delete vcap;
+	//vcap->release();
+  //free(vcap);
+  //cvDestroyWindow(winName); 
+  destroyAllWindows(); 
+	waitKey(10);
+  return (void *)1;
+}
+#elif 0 //  OpenCV-VideoCapture based 
 {
 	static bool needRecording = false;
   const char *winName = "rtp";
@@ -141,7 +217,9 @@ void *Bebop::innerRunVid()
 	waitKey(10);
   return (void *)1;
 }
-#else // for testing video is comming 
+
+#else  // for testing video is comming 
+
 {
         int sock = socket(AF_INET, SOCK_DGRAM, 0);
         if(socket < 0){
