@@ -1,6 +1,6 @@
 # Bebop CPP 2017
 
-Last update 2017.09.13
+Last update 2017.09.22
 
 * Reference
 
@@ -18,17 +18,21 @@ Last update 2017.09.13
           - RX socket : only used in message control thread 
    - video thread : rtp and video decoding using opencv 
    - main thread  :  send flight mode commands and user input 
-   - Log module   :  logging all status infos into a signle file (with date extension), mutex used for mti-thread control
+   - Log module   : logging all status infos into a signle file (with date extension), mutex used for mti-thread control
+   - Log analyzer : matlab script  
+   - video decoding: using OpenCV and directly FFMPEG
+                     decrease resolution (1/2 in hor and ver direction)
+                     save video into file  
    
 * TODO & Plan
 
     - ITEM 1: velocity control: feedback control of vx, vy, vz 
+              Almost done.      
        
     - ITEM 2:  add vision module and thread
            the interface between video decoding thread to be defined.  e.g. call-back, pipe-queue,  etc.
            
-    - ITEM 3: decrease the resolution and store video into into mp4 or avi file.
-     
+    - ITEM3 : vision control
    
 * KnownIssues
 
