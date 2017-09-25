@@ -13,11 +13,11 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <opencv2/opencv.hpp>
-#include "Bebop.h"
 #include <termios.h>
-#include <cmath>
+#include <cmath>  
 #include <algorithm>
-
+#include "Bebop.h"
+#include "PID.h" 	
 
 /* keyboard input handling */
 
@@ -79,6 +79,57 @@ static int waitKey(int delayInms = 10)
 // 
 // @TODO move to BebopControl after verification  
 //===================================================================
+#if 1 
+
+static void controlDrone(Bebop &drone, PID &pidVx, PID &pidVy, PID &pidYaw, PID &pidAlt)
+{
+    const static int Limit = 50; 
+
+/*
+    DRONE_STATE droneState = drone.getFlyingState();
+    if(droneState != HOVERING && droneState != FLYING) // only safei condition 
+				return;
+*/
+
+    // 1. status measured
+    float curVx = -drone.getSpeedX(); // due to x-axis def of bebop
+    float curVy = -drone.getSpeedY();
+    float curYaw = drone.getYaw();
+    float tarYaw = pidYaw.getTarget();  
+    float oriYaw = curYaw;
+		if((tarYaw - curYaw) >= M_PI){
+			  curYaw -= 2.0*M_PI ;  
+    }else if((tarYaw - curYaw) <= -M_PI){
+			  curYaw += 2.0*M_PI ;  
+    }
+    float curAlt = drone.getAlt();
+
+    // 2. controller output 
+    int cmdPitch 	= (int) pidVx.process(curVx);
+    int cmdRoll 	= (int) pidVy.process(curVy);
+    int cmdYawSpeed 		= (int) pidYaw.process(curYaw);
+    int cmdGaz 		= (int) pidAlt.process(curAlt);
+
+    // 3. limit not to operate  extremely    
+    cmdPitch = std::max(std::min(cmdPitch,Limit), -Limit);  
+    cmdRoll  = std::max(std::min(cmdRoll,Limit), -Limit); 
+    cmdYawSpeed = std::max(std::min(cmdYawSpeed,Limit), -Limit);  
+    cmdGaz = std::max(std::min(cmdGaz,Limit), -Limit);  
+
+
+#if 1
+    //printf("X:%f-%f=%f:%d\n", pidVx.getTarget(), curVx, pidVx.getError(), cmdPitch);   
+    //printf("Y:%f-%f=%f:%d\n", pidVy.getTarget(), curVy, pidVy.getError(), cmdRoll);   
+    printf("A:%f-%f=%f:%d\n", pidYaw.getTarget(), oriYaw, pidYaw.getError(), cmdYawSpeed);   
+    //printf("Z:%f-%f=%f:%d\n", pidAlt.getTarget(), curAlt, pidAlt.getError(), cmdGaz);   
+#endif
+
+    // 4. set new control values
+    drone.setPCMD(cmdRoll, cmdPitch, cmdYawSpeed, cmdGaz);
+}
+
+#else
+
 static void controlDrone(Bebop &drone, float target[4])
 {
     const float Kpx = 100.0, Kpy = 50.0, Kpz = 30.0,  Kpa = 60.0;
@@ -119,6 +170,8 @@ static void controlDrone(Bebop &drone, float target[4])
     // set new control values
     drone.setPCMD(cmdRoll, cmdPitch, cmdSpeedYaw, cmdGaz);
 }
+#endif
+
 
 static void showCommands()
 {
@@ -144,8 +197,22 @@ int main(int argc, char *argv[])
   bool videoEnabled = false;
   int initialPcmdVal = 10;
   int pcmdVal = initialPcmdVal; //10%
+  int delay   = 50; // ms 
+
+  // controller related 
+  const float Kpx = 200.0, Kpy = 100.0, Kpz = 30.0, Kpa = 120.0;
+  // with Integrator
+  const float Kix = 100.0, Kiy = 50.0,  Kiz = 0.0,  Kia = 0.0;
+  // no integrator
+  //const float Kix = 0.0, Kiy = 0.0,  Kiz = 0.0,  Kia = 0.0;
+  const float Kdx = 0.0,   Kdy = 0.0,   Kdz = 0.0,  Kda = 0.0;
+
+  PID pidSpeedX(Kpx,Kix,Kdx,delay/1000.0);    
+  PID pidSpeedY(Kpy,Kiy,Kdy,delay/1000.0);    
+  PID pidAlt(Kpz,Kiz,Kdz,delay/1000.0);    
+  PID pidYaw(Kpa,Kia,Kda,delay/1000.0);    
 	float targets[4];  // target vx, vy, yaw_angle, altitude 
-  float curYaw;
+  float initialYaw;  // reference yaw
 
 	showCommands();
 	setiNonBlockTerminal();
@@ -193,10 +260,11 @@ int main(int argc, char *argv[])
 
 #elif 1
 
-		key = waitKey(25);
+		key = waitKey(delay);
 		if(key >= 0){
 
 			std::cout << "KEY:" << (char)key << std::endl;
+
 			switch((char)key){
 
 			case 'v':
@@ -208,20 +276,27 @@ int main(int argc, char *argv[])
 					videoEnabled = false;
 
 				}
-                                curCmd = key;
+        curCmd = key;
 				break;
 
-			// MODE
+			// !) most basic control 
 			case 't':
+				drone.setPCMD(0, 0, 0, 0);  
 				drone.takeoff();
         curCmd = key;
 				break;
 			case 's':
+				drone.setPCMD(0, 0, 0, 0);  
 				drone.land();
         curCmd = key;
 				break;
 
-			// simple NAV
+			case 'h': 
+				drone.setPCMD(0, 0, 0, 0);
+        curCmd = key;
+				break;
+
+			// 2) simple NAV
 			case 'f':  // @TODO: increase when press one more.
 				if(curCmd == 'f')   
 				    pcmdVal += 5;  // speed up
@@ -275,37 +350,58 @@ int main(int argc, char *argv[])
         			curCmd = key;
 				break;
 					
-			case 'h': 
-				drone.setPCMD(0, 0, 0, 0);
-        curCmd = key;
+
+
+      // 3) high level control
+      case '0':  // controlled hovering  
+        curCmd = key;  
+        initialYaw = drone.getYaw();
+			  targets[0] =  0.0; // vx, + : forwards, - : backwards
+		    targets[1] =  0.0; // vy, +: right      - : left 
+			  targets[2] =  initialYaw; // angle  
+			  targets[3] =  1.0; // meter, + : up, -dn 
+        pidSpeedX.setTarget(targets[0]);
+        pidSpeedY.setTarget(targets[1]);
+        pidYaw.setTarget(targets[2]);
+        pidAlt.setTarget(targets[3]);
 				break;
-
-
-      // high level control
       case '1':  // straight forward constan speed 
         curCmd = key;  
-        curYaw = drone.getYaw();
+        initialYaw = drone.getYaw();
 			  targets[0] =  0.3; // vx, + : forwards, - : backwards
 		    targets[1] =  0.0; // vy, +: right      - : left 
-			  targets[2] =  curYaw; // angle  
+			  targets[2] =  initialYaw; // angle  
 			  targets[3] =  1.0; // meter, + : up, -dn 
+        pidSpeedX.setTarget(targets[0]);
+        pidSpeedY.setTarget(targets[1]);
+        pidYaw.setTarget(targets[2]);
+        pidAlt.setTarget(targets[3]);
 				break;
       case '2':  // turn 90 degree 
         curCmd = key;  
-        curYaw = drone.getYaw();
+        initialYaw = drone.getYaw();
 			  targets[0] = 0.0; // vx
 		    targets[1] = 0.0; // vy
-			  targets[2] = fmod(curYaw + M_PI/2, 2.0*M_PI) ; // angle  
+			  targets[2] = fmod(initialYaw + M_PI/2, 2.0*M_PI) ; // angle  
 			  if(targets[2] > M_PI)  targets[2] -= M_PI;  
 			  targets[3] = 1.0; // meter 
+        pidSpeedX.setTarget(targets[0]);
+        pidSpeedY.setTarget(targets[1]);
+        pidYaw.setTarget(targets[2]);
+        pidAlt.setTarget(targets[3]);
 				break;
       case '3':  // curve
         curCmd = key;  
+        initialYaw = drone.getYaw();
 			  targets[0] = 0.3; // vx
 		    targets[1] = 0.0; // vy
-			  targets[2] = fmod(curYaw + M_PI/2, 2.0*M_PI) ; // angle  
+			  targets[2] = fmod(initialYaw + M_PI/2, 2.0*M_PI) ; // angle  
 			  if(targets[2] > M_PI)  targets[2] -= M_PI;  
 			  targets[3] = 1.0; // meter 
+        pidSpeedX.setTarget(targets[0]);
+        pidSpeedY.setTarget(targets[1]);
+        pidYaw.setTarget(targets[2]);
+        pidAlt.setTarget(targets[3]);
 				break;
 	
 			case 'q':
@@ -324,8 +420,9 @@ int main(int argc, char *argv[])
 
 
     // motion control
-		if(curCmd == '1' || curCmd == '2' || curCmd == '3'){
-			controlDrone(drone, targets);
+		if(curCmd == '0' || curCmd == '1' || curCmd == '2' || curCmd == '3'){
+			//controlDrone(drone, targets);
+			controlDrone(drone, pidSpeedX, pidSpeedY, pidYaw, pidAlt);
 		}
 
 #endif
