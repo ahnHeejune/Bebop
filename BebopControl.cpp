@@ -20,6 +20,8 @@ Bebop::Bebop()
    // protocols
    droneState = DRONE_STATE_MAX;
    memset(seq, 1, sizeof(seq));
+
+  nImageCount = 0;
 }
 
 //========================================================================

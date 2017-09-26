@@ -79,9 +79,12 @@ bool Bebop::mediaStreamingEnable(bool enable)
 // RTP RX using OpenCV (internally ffmpeg) 
 // @TODO: have to separate the control and video part?
 //========================================================================
+
 void *Bebop::innerRunVid()
 #if 1 // FFMPEG based 
 {
+  extern unsigned char sharedImgBuf[240*1284];
+
 	static bool needRecording = false;
   const char *winName = "rtp";
 	//use path of "bebop.sdp" file
@@ -118,7 +121,11 @@ void *Bebop::innerRunVid()
   unsigned char *imgPtr;
   int imgStride;
   vcap->getImagePtr(&imgPtr, &imgStride);
+  std::cout << "Stride:" << imgStride << std::endl; 
 	Mat imgMat = cv::Mat(height, width, CV_8UC3, imgPtr, imgStride);
+  //imageMat = &imgMat;
+	//imageMat = cv::Mat(height, width, CV_8UC3, imgPtr, imgStride);
+	//imageMat = Mat::ones(height, width, CV_8UC3);
 
 	VideoWriter *recVid = NULL;
   if(needRecording){
@@ -127,19 +134,16 @@ void *Bebop::innerRunVid()
 			std:cerr << "error in creating Video writer" << std::endl;
 	}
 
-	namedWindow(winName, CV_WINDOW_AUTOSIZE);
-
 	while(!stopVidReq){
      int f = vcap->decode_frame();
      if(!f)
         break;
 
-  	if(needRecording){
-			recVid->write(imgMat);
-		}
-//     image.copyTo(img); // thread safe clone for using it 
-		imshow(winName, imgMat); 
-		waitKey(10); // @TODO, this should not get any key since we have another thread to getting key input
+    memcpy(sharedImgBuf,imgPtr,width*3*height );
+    //imgMat.copyTo(imageMat); // thread safe clone for using it 
+    //imageMat = imgMat.clone(); // thread safe clone for using it 
+    nImageCount = 1;
+    usleep(100);
 	}
 
   std::cerr << "Finishing RTP" << std::endl;
@@ -149,11 +153,6 @@ void *Bebop::innerRunVid()
 	} 
   vcap->close();
   delete vcap;
-	//vcap->release();
-  //free(vcap);
-  //cvDestroyWindow(winName); 
-  destroyAllWindows(); 
-	waitKey(10);
   return (void *)1;
 }
 #elif 0 //  OpenCV-VideoCapture based 

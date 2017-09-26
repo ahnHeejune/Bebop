@@ -19,6 +19,11 @@
 #include "Bebop.h"
 #include "PID.h" 	
 
+
+extern int vision_start(Bebop *);
+extern int vision_stop(); 
+
+
 /* keyboard input handling */
 
 static void setiNonBlockTerminal()
@@ -270,9 +275,11 @@ int main(int argc, char *argv[])
 			case 'v':
 				if(!videoEnabled){
 					drone.mediaStreamingEnable(true);
+          vision_start(&drone);
 					videoEnabled = true;
 				}else{
 					drone.mediaStreamingEnable(false);
+          vision_stop();
 					videoEnabled = false;
 
 				}

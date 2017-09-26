@@ -214,7 +214,7 @@ protected:
     bool logUndefinedMsg(int pjt, int clazz, int cmd, unsigned char *msg, int prntlen);
 
 
-    cv::Mat img; // current image
+    //cv::Mat img; // current image
     int onVideoFrame(unsigned char *data, int size);
     //int h264DecoderDecode(unsigned char *inbuf, int len, bool toSave);
 
@@ -262,7 +262,6 @@ protected:
     int stopVid( ){
 	stopVidReq = true;
     }
-
     
 public:
     
@@ -298,6 +297,9 @@ public:
 	stopControlReq = true;
     }
 
+   cv::Mat imageMat;
+   //unsigned char sharedImgBuf[240*1284]; 
+   volatile int nImageCount; 
     
     
 };
